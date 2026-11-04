@@ -1,0 +1,429 @@
+# Numbers, times and sizes as people say them: "5 minutes ago", "1 hour 5 minutes", "2.4 MB", "21st",
+# "3 files", "Ana, Bo and Cy", "1.2K", "forty-two". In Moth alone, so it works everywhere.
+#
+#   use the package "humanize" as humanize
+#   say humanize's ago(300)                          # 5 minutes ago (and ago(-300) is in 5 minutes)
+#   say humanize's since(dates's read_date("2026-11-01 09:00"))    # 3 days ago, or however long it's been
+#   say humanize's duration(3900)                    # 1 hour 5 minutes
+#   say humanize's short_duration(3.25)              # 3.3s; and 1h 5m, 250ms
+#   say humanize's file_size(2400000)                # 2.4 MB (file_size_binary: 2.3 MiB)
+#   say humanize's ordinal(21)                       # 21st
+#   say humanize's counted(3, "file")                # 3 files; counted(1, "person") is 1 person
+#   say humanize's plural_of("child")                # children
+#   say humanize's listed(list of "Ana", "Bo", "Cy") # Ana, Bo and Cy; listed_or: Ana, Bo or Cy
+#   say humanize's compact(1234567)                  # 1.2M
+#   say humanize's number_words(42)                  # forty-two
+#   say humanize's truncated("The quick brown fox jumps", 15)   # The quick…
+#
+# ago and since round as people do: 40 seconds is "just now", 50 is "a minute ago", 100 minutes is
+# "2 hours ago", 25 days "25 days ago", 50 days "2 months ago". since takes a date (as dates.moth makes
+# them, with a time or without) and, if it's given, the time to count to instead of now.
+
+# ---------- times ----------
+
+# how long ago that many seconds was, as people say it; less than 0 is still to come
+to ago with seconds
+    set s to seconds
+    set later to s is less than 0
+    if later
+        set s to 0 - s
+    end
+    set said to humanize_span(s)
+    if said is "just now"
+        return said
+    end
+    if later
+        return "in " + said
+    end
+    return said + " ago"
+end
+
+# how long ago a date and time was, from now (or from `upto`, if it's given)
+to since with then, upto or nothing
+    set till to upto
+    if till is nothing
+        set till to record with year the year, month the month, day the day, hour the hour, minute the minute,
+            second the second
+    end
+    return ago(humanize_seconds_of(till) - humanize_seconds_of(then))
+end
+
+to humanize_seconds_of with d
+    set made to humanize_day_number(d's year, d's month, d's day) * 86400
+    try
+        set made to made + d's hour * 3600 + d's minute * 60 + d's second
+    if it fails
+        set made to humanize_day_number(d's year, d's month, d's day) * 86400
+    end
+    return made
+end
+
+# days since 1 January 1970, as dates.moth's day_number counts them
+to humanize_day_number with year, month, day
+    set y to year
+    if month is at most 2
+        set y to y - 1
+    end
+    set era to (y / 400) rounded down
+    set in_era to y - era * 400
+    set from_march to remainder of (month + 9) divided by 12
+    set before_month to ((153 * from_march + 2) / 5) rounded down
+    set in_year to before_month + day - 1
+    set leap_days to (in_era / 4) rounded down
+    set centuries to (in_era / 100) rounded down
+    return era * 146097 + in_era * 365 + leap_days - centuries + in_year - 719468
+end
+
+to humanize_span with s
+    set minutes to s / 60
+    set hours to s / 3600
+    set days to s / 86400
+    if s is less than 45
+        return "just now"
+    else if s is less than 90
+        return "a minute"
+    else if minutes is less than 45
+        return humanize_round(minutes) + " minutes"
+    else if minutes is less than 90
+        return "an hour"
+    else if hours is less than 22
+        return humanize_round(hours) + " hours"
+    else if hours is less than 36
+        return "a day"
+    else if days is less than 26
+        return humanize_round(days) + " days"
+    else if days is less than 45
+        return "a month"
+    else if days is less than 320
+        return humanize_round(days / 30.4) + " months"
+    else if days is less than 548
+        return "a year"
+    end
+    return humanize_round(days / 365.25) + " years"
+end
+
+to humanize_round with x
+    set made to x rounded
+    return made
+end
+
+# how long, in its two biggest parts (or `parts` of them): 1 hour 5 minutes, 2 days 3 hours, 45 seconds
+to duration with seconds, parts or 2
+    set left to (seconds rounded)
+    if left is less than 0
+        set left to 0 - left
+    end
+    set units to list of (list of "day", 86400), (list of "hour", 3600), (list of "minute", 60), (list of "second", 1)
+    set said to empty list
+    for each unit in units
+        set size to item 2 of unit
+        set count to (left / size) rounded down
+        if count is greater than 0 and length of said is less than parts
+            add counted(count, item 1 of unit) to said
+            set left to left - count * size
+        else if length of said is greater than 0 and length of said is less than parts
+            # a part that's 0 between two that aren't ends what's said, as 1 hour 0 minutes 5 seconds is 1 hour
+            set parts to length of said
+        end
+    end
+    if length of said is 0
+        return "0 seconds"
+    end
+    return join said with " "
+end
+
+# how long, as a program's timing says it: 250ms, 3.3s, 1m 5s, 1h 5m, 2d 3h
+to short_duration with seconds
+    set s to seconds
+    if s is less than 0
+        set s to 0 - s
+    end
+    if s is less than 1
+        set ms to (s * 1000) rounded
+        return "" + ms + "ms"
+    else if s is less than 60
+        return humanize_one_place(s) + "s"
+    end
+    set whole to s rounded
+    set d to (whole / 86400) rounded down
+    set all_hours to (whole / 3600) rounded down
+    set all_minutes to (whole / 60) rounded down
+    set h to all_hours - d * 24
+    set m to all_minutes - all_hours * 60
+    set rest to whole - all_minutes * 60
+    if d is greater than 0
+        return "" + d + "d " + h + "h"
+    else if h is greater than 0
+        return "" + h + "h " + m + "m"
+    end
+    return "" + m + "m " + rest + "s"
+end
+
+# ---------- sizes and numbers ----------
+
+# a number of bytes as kB, MB, GB, TB and PB, of 1000 each
+to file_size with count
+    return humanize_scaled(count, 1000, list of "kB", "MB", "GB", "TB", "PB")
+end
+
+# a number of bytes as KiB, MiB, GiB, TiB and PiB, of 1024 each
+to file_size_binary with count
+    return humanize_scaled(count, 1024, list of "KiB", "MiB", "GiB", "TiB", "PiB")
+end
+
+to humanize_scaled with count, step, units
+    if count is less than step and count is greater than -1 * step
+        if count is 1
+            return "1 byte"
+        end
+        return "" + count + " bytes"
+    end
+    set x to count
+    set k to 0
+    repeat while (x is at least step or x is at most -1 * step) and k is less than length of units
+        set x to x / step
+        add 1 to k
+    end
+    return humanize_short_number(x) + " " + item k of units
+end
+
+# a number to about 2 places: 1.2, 12, 120, with a .0 left out
+to humanize_short_number with x
+    set size to x
+    if size is less than 0
+        set size to 0 - size
+    end
+    if size is less than 10
+        return humanize_one_place(x)
+    end
+    set made to x rounded
+    return "" + made
+end
+
+to humanize_one_place with x
+    set written to x with 1 decimals
+    if length of written is greater than 2 and items (length of written - 1) to length of written of written is ".0"
+        return items 1 to length of written - 2 of written
+    end
+    return written
+end
+
+# a big number short: 999, 1.2K, 15K, 3.4M, 1.2B, 5T
+to compact with n
+    set size to n
+    if size is less than 0
+        set size to 0 - size
+    end
+    if size is less than 1000
+        return "" + n
+    end
+    set x to n
+    set k to 0
+    set units to list of "K", "M", "B", "T"
+    repeat while (x is at least 1000 or x is at most -1000) and k is less than 4
+        set x to x / 1000
+        add 1 to k
+    end
+    return humanize_short_number(x) + item k of units
+end
+
+# 1st, 2nd, 3rd, 4th, 11th, 12th, 13th, 21st, 102nd
+to ordinal with n
+    set last_two to remainder of n divided by 100
+    set last to remainder of n divided by 10
+    if last_two is at least 11 and last_two is at most 13
+        return "" + n + "th"
+    else if last is 1
+        return "" + n + "st"
+    else if last is 2
+        return "" + n + "nd"
+    else if last is 3
+        return "" + n + "rd"
+    end
+    return "" + n + "th"
+end
+
+# a whole number in words: forty-two, one thousand two hundred and five, minus seven
+to number_words with n
+    if not (n is divisible by 1)
+        fail with "number_words takes a whole number, not " + n
+    end
+    if n is 0
+        return "zero"
+    else if n is less than 0
+        return "minus " + number_words(0 - n)
+    end
+    set scales to list of (list of 1000000000000, "trillion"), (list of 1000000000, "billion"), (list of 1000000,
+        "million"), (list of 1000, "thousand")
+    set said to empty list
+    set left to n
+    for each scale in scales
+        set count to (left / item 1 of scale) rounded down
+        if count is greater than 0
+            add humanize_below_thousand(count) + " " + item 2 of scale to said
+            set left to left - count * item 1 of scale
+        end
+    end
+    if left is greater than 0
+        if length of said is greater than 0 and left is less than 100
+            add "and " + humanize_below_thousand(left) to said
+        else
+            add humanize_below_thousand(left) to said
+        end
+    end
+    return join said with " "
+end
+
+to humanize_below_thousand with n
+    set ones to list of "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
+        "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"
+    set tens to list of "ten", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"
+    set said to empty list
+    set hundreds to (n / 100) rounded down
+    set rest to n - hundreds * 100
+    if hundreds is greater than 0
+        add item hundreds of ones + " hundred" to said
+        if rest is greater than 0
+            add "and" to said
+        end
+    end
+    if rest is greater than 0 and rest is less than 20
+        add item rest of ones to said
+    else if rest is at least 20
+        set ten to (rest / 10) rounded down
+        set one to rest - ten * 10
+        if one is 0
+            add item ten of tens to said
+        else
+            add item ten of tens + "-" + item one of ones to said
+        end
+    end
+    return join said with " "
+end
+
+# ---------- words ----------
+
+# the count and the word, plural unless the count is 1: 1 file, 3 files, 0 people
+to counted with count, word
+    if count is 1
+        return "" + count + " " + word
+    end
+    return "" + count + " " + plural_of(word)
+end
+
+# a word's plural: files, boxes, cities, knives, people, children, sheep
+to plural_of with word
+    set lower to lowercase of word
+    set irregular to dictionary where "person" is "people", "child" is "children", "man" is "men", "woman" is "women",
+        "mouse" is "mice", "goose" is "geese", "foot" is "feet", "tooth" is "teeth", "ox" is "oxen", "die" is "dice",
+        "sheep" is "sheep", "fish" is "fish", "deer" is "deer", "series" is "series", "species" is "species",
+        "moose" is "moose", "aircraft" is "aircraft", "information" is "information", "news" is "news",
+        "leaf" is "leaves", "knife" is "knives", "life" is "lives", "wife" is "wives", "half" is "halves",
+        "wolf" is "wolves", "shelf" is "shelves", "loaf" is "loaves", "thief" is "thieves", "calf" is "calves",
+        "self" is "selves", "elf" is "elves", "hero" is "heroes", "potato" is "potatoes", "tomato" is "tomatoes",
+        "echo" is "echoes", "veto" is "vetoes", "index" is "indices", "matrix" is "matrices", "vertex" is "vertices",
+        "analysis" is "analyses", "crisis" is "crises", "thesis" is "theses", "cactus" is "cacti",
+        "datum" is "data", "medium" is "media", "criterion" is "criteria", "phenomenon" is "phenomena"
+    if lower is in irregular
+        return humanize_cased_word(word, item lower of irregular)
+    end
+    set n to length of lower
+    if n is 0
+        return word
+    end
+    set last to item n of lower
+    set last_two to ""
+    if n is at least 2
+        set last_two to items n - 1 to n of lower
+    end
+    if last is "s" or last is "x" or last is "z" or last_two is "ch" or last_two is "sh"
+        return word + humanize_cased_end(word, "es")
+    end
+    if last is "y" and n is at least 2 and not (item (n - 1) of lower is in "aeiou")
+        return items 1 to n - 1 of word + humanize_cased_end(word, "ies")
+    end
+    return word + humanize_cased_end(word, "s")
+end
+
+# a word for another, in capitals if it was all capitals, or with a capital first if it had one
+to humanize_cased_word with word, made
+    if humanize_is_capital(word) and length of word is greater than 1 and uppercase of word is word
+        return uppercase of made
+    else if humanize_is_capital(word) and length of made is greater than 0
+        return uppercase of item 1 of made + humanize_rest(made)
+    end
+    return made
+end
+
+# an ending for a word, in capitals if the word was all capitals
+to humanize_cased_end with word, ending
+    if length of word is greater than 1 and uppercase of word is word and lowercase of word is not word
+        return uppercase of ending
+    end
+    return ending
+end
+
+to humanize_is_capital with word
+    if length of word is 0
+        return no
+    end
+    set first to item 1 of word
+    return uppercase of first is first and lowercase of first is not first
+end
+
+to humanize_rest with words
+    if length of words is less than 2
+        return ""
+    end
+    return items 2 to length of words of words
+end
+
+# a, b and c
+to listed with things
+    return humanize_joined(things, "and")
+end
+
+# a, b or c
+to listed_or with things
+    return humanize_joined(things, "or")
+end
+
+to humanize_joined with things, last_word
+    set shown to empty list
+    for each thing in things
+        add "" + thing to shown
+    end
+    if length of shown is 0
+        return ""
+    else if length of shown is 1
+        return item 1 of shown
+    end
+    return (join (items 1 to length of shown - 1 of shown) with ", ") + " " + last_word + " " + item (length of shown)
+        of shown
+end
+
+# at most `size` letters, cut where a word ends, with … after it if anything was cut
+to truncated with words, size
+    set given to "" + words
+    if length of given is at most size
+        return given
+    end
+    if size is less than 2
+        return "…"
+    end
+    set cut to items 1 to size - 1 of given
+    # back to where a word ends, unless one ends just there
+    if item size of given is not " "
+        set k to length of cut
+        repeat while k is at least 1 and item k of cut is not " "
+            set k to k - 1
+        end
+        if k is greater than 1
+            set cut to items 1 to k - 1 of cut
+        end
+    end
+    repeat while length of cut is greater than 0 and item (length of cut) of cut is in " ,;:.-"
+        set cut to items 1 to length of cut - 1 of cut
+    end
+    return cut + "…"
+end

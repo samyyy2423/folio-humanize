@@ -1,0 +1,129 @@
+# humanize.moth's tests: moth test humanize.test.moth
+
+use "humanize.moth" as humanize
+use "dates.moth" as dates
+
+to test_ago
+    expect humanize's ago(0) is "just now"
+    expect humanize's ago(40) is "just now"
+    expect humanize's ago(50) is "a minute ago"
+    expect humanize's ago(300) is "5 minutes ago"
+    expect humanize's ago(44 * 60) is "44 minutes ago"
+    expect humanize's ago(50 * 60) is "an hour ago"
+    expect humanize's ago(100 * 60) is "2 hours ago"
+    expect humanize's ago(30 * 3600) is "a day ago"
+    expect humanize's ago(3 * 86400) is "3 days ago"
+    expect humanize's ago(25 * 86400) is "25 days ago"
+    expect humanize's ago(30 * 86400) is "a month ago"
+    expect humanize's ago(50 * 86400) is "2 months ago"
+    expect humanize's ago(400 * 86400) is "a year ago"
+    expect humanize's ago(1000 * 86400) is "3 years ago"
+    expect humanize's ago(-300) is "in 5 minutes"
+    expect humanize's ago(-3 * 86400) is "in 3 days"
+    expect humanize's ago(-10) is "just now"
+end
+
+to test_since
+    set then to dates's read_date("2026-11-01 09:00")
+    expect humanize's since(then, dates's read_date("2026-11-04 10:00")) is "3 days ago"
+    expect humanize's since(then, dates's read_date("2026-11-01 09:05")) is "5 minutes ago"
+    expect humanize's since(dates's read_date("2026-11-05"), dates's read_date("2026-11-04")) is "in a day"
+    expect humanize's since(dates's date(2020, 1, 1), dates's date(2026, 1, 1)) is "6 years ago"
+end
+
+to test_durations
+    expect humanize's duration(0) is "0 seconds"
+    expect humanize's duration(1) is "1 second"
+    expect humanize's duration(45) is "45 seconds"
+    expect humanize's duration(90) is "1 minute 30 seconds"
+    expect humanize's duration(3900) is "1 hour 5 minutes"
+    expect humanize's duration(3605) is "1 hour" # a 0 between ends what's said
+    expect humanize's duration(2 * 86400 + 3 * 3600 + 7) is "2 days 3 hours"
+    expect humanize's duration(2 * 86400 + 3 * 3600 + 120, 3) is "2 days 3 hours 2 minutes"
+    expect humanize's duration(86400 + 59, 1) is "1 day"
+    expect humanize's short_duration(0.25) is "250ms"
+    expect humanize's short_duration(3.25) is "3.3s"
+    expect humanize's short_duration(12) is "12s"
+    expect humanize's short_duration(65) is "1m 5s"
+    expect humanize's short_duration(3900) is "1h 5m"
+    expect humanize's short_duration(2 * 86400 + 3 * 3600) is "2d 3h"
+end
+
+to test_file_sizes
+    expect humanize's file_size(0) is "0 bytes"
+    expect humanize's file_size(1) is "1 byte"
+    expect humanize's file_size(999) is "999 bytes"
+    expect humanize's file_size(1000) is "1 kB"
+    expect humanize's file_size(1500) is "1.5 kB"
+    expect humanize's file_size(2400000) is "2.4 MB"
+    expect humanize's file_size(123456789) is "123 MB"
+    expect humanize's file_size(5 * 1000 * 1000 * 1000 * 1000) is "5 TB"
+    expect humanize's file_size_binary(1024) is "1 KiB"
+    expect humanize's file_size_binary(2400000) is "2.3 MiB"
+    expect humanize's file_size_binary(1023) is "1023 bytes"
+end
+
+to test_compact_and_ordinal
+    expect humanize's compact(999) is "999"
+    expect humanize's compact(1234) is "1.2K"
+    expect humanize's compact(15300) is "15K"
+    expect humanize's compact(1234567) is "1.2M"
+    expect humanize's compact(-2500000000) is "-2.5B"
+    expect humanize's compact(7000000000000) is "7T"
+    for each pair in list of (list of 1, "1st"), (list of 2, "2nd"), (list of 3, "3rd"), (list of 4, "4th"),
+        (list of 11, "11th"), (list of 12, "12th"), (list of 13, "13th"), (list of 21, "21st"), (list of 22, "22nd"),
+        (list of 101, "101st"), (list of 111, "111th"), (list of 0, "0th")
+        expect humanize's ordinal(item 1 of pair) is item 2 of pair
+    end
+end
+
+to test_number_words
+    expect humanize's number_words(0) is "zero"
+    expect humanize's number_words(7) is "seven"
+    expect humanize's number_words(42) is "forty-two"
+    expect humanize's number_words(90) is "ninety"
+    expect humanize's number_words(100) is "one hundred"
+    expect humanize's number_words(115) is "one hundred and fifteen"
+    expect humanize's number_words(1205) is "one thousand two hundred and five"
+    expect humanize's number_words(2000005) is "two million and five"
+    expect humanize's number_words(-13) is "minus thirteen"
+    expect humanize's number_words(999999999999999) is "nine hundred and ninety-nine trillion nine hundred and ninety-nine billion nine hundred and ninety-nine million nine hundred and ninety-nine thousand nine hundred and ninety-nine"
+    try
+        humanize's number_words(1.5)
+        expect no
+    if it fails with why
+        expect why is "number_words takes a whole number, not 1.5"
+    end
+end
+
+to test_plurals
+    expect humanize's counted(1, "file") is "1 file"
+    expect humanize's counted(3, "file") is "3 files"
+    expect humanize's counted(0, "person") is "0 people"
+    for each pair in list of (list of "box", "boxes"), (list of "church", "churches"), (list of "wish", "wishes"),
+        (list of "bus", "buses"), (list of "city", "cities"), (list of "day", "days"), (list of "knife", "knives"),
+        (list of "child", "children"), (list of "sheep", "sheep"), (list of "analysis", "analyses"),
+        (list of "photo", "photos"), (list of "potato", "potatoes"), (list of "File", "Files"),
+        (list of "Person", "People"), (list of "CITY", "CITIES"), (list of "URL", "URLS"), (list of "", "")
+        expect humanize's plural_of(item 1 of pair) is item 2 of pair
+    end
+end
+
+to test_lists_and_truncating
+    expect humanize's listed(empty list) is ""
+    expect humanize's listed(list of "Ana") is "Ana"
+    expect humanize's listed(list of "Ana", "Bo") is "Ana and Bo"
+    expect humanize's listed(list of "Ana", "Bo", "Cy") is "Ana, Bo and Cy"
+    expect humanize's listed_or(list of 1, 2, 3) is "1, 2 or 3"
+    expect humanize's truncated("The quick brown fox jumps", 15) is "The quick…"
+    expect humanize's truncated("short", 15) is "short"
+    expect humanize's truncated("Supercalifragilistic", 8) is "Superca…"
+    expect humanize's truncated("Hello, world and more", 13) is "Hello, world…"
+end
+
+to test_day_numbers_as_dates_has_them
+    for each d in list of (dates's date(1970, 1, 1)), (dates's date(2000, 2, 29)), (dates's date(2026, 11, 4)),
+        (dates's date(1969, 12, 31)), (dates's date(2100, 3, 1))
+        expect humanize's humanize_day_number(d's year, d's month, d's day) is dates's day_number(d)
+    end
+end

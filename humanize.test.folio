@@ -1,7 +1,7 @@
-# humanize.moth's tests: moth test humanize.test.moth
+# humanize.folio's tests: folio test humanize.test.folio
 
-use "humanize.moth" as humanize
-use "dates.moth" as dates
+use "humanize.folio" as humanize
+use "dates.folio" as dates
 
 to test_ago
     expect humanize's ago(0) is "just now"

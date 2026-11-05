@@ -1,5 +1,5 @@
 # Numbers, times and sizes as people say them: "5 minutes ago", "1 hour 5 minutes", "2.4 MB", "21st",
-# "3 files", "Ana, Bo and Cy", "1.2K", "forty-two". In Moth alone, so it works everywhere.
+# "3 files", "Ana, Bo and Cy", "1.2K", "forty-two". In Folio alone, so it works everywhere.
 #
 #   use the package "humanize" as humanize
 #   say humanize's ago(300)                          # 5 minutes ago (and ago(-300) is in 5 minutes)
@@ -16,7 +16,7 @@
 #   say humanize's truncated("The quick brown fox jumps", 15)   # The quick…
 #
 # ago and since round as people do: 40 seconds is "just now", 50 is "a minute ago", 100 minutes is
-# "2 hours ago", 25 days "25 days ago", 50 days "2 months ago". since takes a date (as dates.moth makes
+# "2 hours ago", 25 days "25 days ago", 50 days "2 months ago". since takes a date (as dates.folio makes
 # them, with a time or without) and, if it's given, the time to count to instead of now.
 
 # ---------- times ----------
@@ -58,7 +58,7 @@ to humanize_seconds_of with d
     return made
 end
 
-# days since 1 January 1970, as dates.moth's day_number counts them
+# days since 1 January 1970, as dates.folio's day_number counts them
 to humanize_day_number with year, month, day
     set y to year
     if month is at most 2

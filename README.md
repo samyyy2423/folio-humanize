@@ -1,11 +1,11 @@
 # humanize
 
-Numbers, times and sizes as people say them, for [Moth](https://github.com/samyyy2423/moth) programs:
+Numbers, times and sizes as people say them, for [Folio](https://github.com/samyyy2423/folio) programs:
 "5 minutes ago", "1 hour 5 minutes", "2.4 MB", "21st", "3 files", "Ana, Bo and Cy", "1.2K", "forty-two".
-In Moth alone, so it works everywhere Moth does.
+In Folio alone, so it works everywhere Folio does.
 
 ```text
-moth add humanize
+folio add humanize
 ```
 
 ```
@@ -25,7 +25,7 @@ say humanize's number_words(42)                   # forty-two
 | | |
 |---|---|
 | `ago(seconds)` | `just now`, `a minute ago`, `5 minutes ago`, `2 hours ago`, `3 days ago`, `2 months ago`, `3 years ago`; less than 0 is `in 5 minutes` |
-| `since(time, upto)` | how long ago a date and time (as `dates.moth` makes them) was, from now, or from `upto` if it's given |
+| `since(time, upto)` | how long ago a date and time (as `dates.folio` makes them) was, from now, or from `upto` if it's given |
 | `duration(seconds, parts)` | `1 hour 5 minutes`, `2 days 3 hours`: the two biggest parts, or `parts` of them |
 | `short_duration(seconds)` | `250ms`, `3.3s`, `1m 5s`, `1h 5m`, `2d 3h`: for a program's timing |
 | `file_size(bytes)` | `999 bytes`, `1.5 kB`, `2.4 MB`, `123 MB`, `5 TB`, of 1000 each |
@@ -44,9 +44,9 @@ ago", 25 days "25 days ago", 50 days "2 months ago".
 ## Tests
 
 ```text
-moth test humanize.test.moth
+folio test humanize.test.folio
 ```
 
 ## License
 
-Apache License 2.0, as Moth is: see [LICENSE](LICENSE).
+Apache License 2.0, as Folio is: see [LICENSE](LICENSE).
